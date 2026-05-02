@@ -2734,7 +2734,7 @@ function CalendarView({month, setMonth}) {
 
             {/* Mini timeline horizontal de los 9 meses */}
             <div style={{display:'flex', background:`${phaseColor}05`}}>
-              {D.overview.roadmap.map((r, i) => {
+              {D.overview.roadmap.filter(r => r.month !== 'abril').map((r, i) => {
                 const isCurrent = r.month === month;
                 const rColor = 
                   r.phase === 'lanzamiento' ? C.accent :
@@ -4537,7 +4537,7 @@ function IncomeView() {
   };
 
   // Build chart data
-  const chartData = D.revenue.map(r => {
+  const chartData = D.revenue.filter(r => r.month !== 'abril').map(r => {
     const ebook_real = realData[`${r.month}_ebook`] || 0;
     const asesoria_real = realData[`${r.month}_asesoria`] || 0;
     const acomp_real = realData[`${r.month}_acomp`] || 0;
@@ -4668,7 +4668,7 @@ function IncomeView() {
             </tr>
           </thead>
           <tbody>
-            {D.revenue.map((r, i) => {
+            {D.revenue.filter(r => r.month !== 'abril').map((r, i) => {
               const keyEb = `${r.month}_ebook`;
               const keyAs = `${r.month}_asesoria`;
               const keyAc = `${r.month}_acomp`;
