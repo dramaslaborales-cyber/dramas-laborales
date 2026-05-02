@@ -4577,7 +4577,7 @@ function IncomeView() {
           <div style={{fontSize:28, fontFamily:"'Fraunces', serif", color:C.ink}}>
             {totalObj.toLocaleString('es-ES')} €
           </div>
-          <div style={{fontSize:11, color:C.inkSoft, marginTop:4}}>abril — diciembre</div>
+          <div style={{fontSize:11, color:C.inkSoft, marginTop:4}}>mayo — diciembre</div>
         </Card>
         <Card style={{background: C.igBg, border:'none'}}>
           <div style={{fontSize:10, color:C.inkSoft, textTransform:'uppercase', letterSpacing:1, fontWeight:600, marginBottom:6}}>
