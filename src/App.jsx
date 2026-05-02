@@ -895,21 +895,36 @@ function setLastErr(msg) {
 }
 
 async function sget(key) {
-  if (typeof window === 'undefined' || !window.storage) return null;
+  // On Vercel (no window.storage), always use localStorage
+  if (typeof window === 'undefined') return null;
+  if (!window.storage) {
+    try {
+      const raw = window.localStorage?.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
   try {
     const r = await window.storage.get(key);
     return r ? JSON.parse(r.value) : null;
   } catch (e) {
     const msg = e?.message || String(e);
     if (/not.*found|does not exist|404/i.test(msg)) return null;
-    console.warn('[storage get]', key, e);
-    setLastErr(`get · ${msg}`);
-    return null;
+    // Fallback to localStorage
+    try {
+      const raw = window.localStorage?.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
   }
 }
 
 async function sset(key, val) {
-  // Si window.storage no existe (ej: artifact publicado), localStorage ya guarda · no es un error
+  // Siempre guardar en localStorage como respaldo principal
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, JSON.stringify(val));
+    }
+  } catch {}
+  // Si window.storage no existe (ej: Vercel), localStorage es suficiente
   if (typeof window === 'undefined' || !window.storage) {
     setLastErr('');
     return true;
@@ -1244,7 +1259,16 @@ async function syncStatusToNotion(post, newStatus) {
 // ═══════════════════════════════════════════════════════════════════
 export default function App() {
   const [view, setView] = useState('dashboard');
-  const [month, setMonth] = useState('mayo');
+  const [month, setMonth] = useState(() => {
+    // Detectar mes actual automáticamente
+    const now = new Date();
+    const monthNum = now.getMonth() + 1; // 1-12
+    const map = {4:'abril',5:'mayo',6:'junio',7:'julio',8:'agosto',9:'septiembre',10:'octubre',11:'noviembre',12:'diciembre'};
+    const detected = map[monthNum];
+    // Verificar que existe en MONTHS_ES (si no, usar mayo como base)
+    if (detected && MONTHS_ES.find(m => m.id === detected)) return detected;
+    return 'mayo';
+  });
   const storageErr = useLastStorageError();
   const { theme, toggle: toggleTheme } = useTheme();
 
@@ -4771,10 +4795,17 @@ function getSundayOfWeek(date) {
   return sunday;
 }
 
-// Helper: formato "dd mes" para mostrar domingo
+// Helper: formato "dd-dd mes" mostrando lunes a domingo de la semana
 function formatWeekLabel(sunday) {
   const mesesShort = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return `${sunday.getDate()} ${mesesShort[sunday.getMonth()]}`;
+  const monday = new Date(sunday);
+  monday.setDate(sunday.getDate() - 6); // lunes = domingo - 6
+  const sameMonth = monday.getMonth() === sunday.getMonth();
+  if (sameMonth) {
+    return `${monday.getDate()}–${sunday.getDate()} ${mesesShort[sunday.getMonth()]}`;
+  } else {
+    return `${monday.getDate()} ${mesesShort[monday.getMonth()]}–${sunday.getDate()} ${mesesShort[sunday.getMonth()]}`;
+  }
 }
 
 // Helper: clave única por semana (YYYY-MM-DD del domingo)
