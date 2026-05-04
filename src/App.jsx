@@ -1312,8 +1312,8 @@ export default function App() {
   const NAV = [
     {id:'dashboard', label:'Dashboard', icon:Home, group:'principal'},
     {id:'calendar', label:'Calendario', icon:CalIcon, group:'principal'},
-    {id:'schedule', label:'Programación', icon:Bell, group:'principal'},
-    {id:'tasks', label:'to do', icon:Check, group:'principal'},
+    {id:'centro', label:'Centro de mando', icon:Target, group:'principal'},
+    {id:'tasks', label:'To Do', icon:Check, group:'principal'},
     {id:'instagram', label:'Instagram', icon:IgIcon, group:'redes', color:C.igDark},
     {id:'linkedin', label:'LinkedIn', icon:LiIcon, group:'redes', color:C.liDark},
     {id:'substack', label:'Substack', icon:FileText, group:'redes', color:C.ssDark},
@@ -1323,7 +1323,7 @@ export default function App() {
     {id:'highlights', label:'Destacadas IG', icon:Sparkles, group:'redes', color:C.igDark},
     {id:'income', label:'Proyección ingresos', icon:TrendingUp, group:'análisis'},
     {id:'metrics', label:'Métricas', icon:BarChart3, group:'análisis'},
-    {id:'strategy', label:'Estrategia', icon:Target, group:'análisis'},
+
     {id:'dates', label:'Fechas clave', icon:Star, group:'recursos'},
     {id:'hashtags', label:'Hashtags', icon:Hash, group:'recursos'},
     {id:'hooks', label:'Banco de hooks', icon:CopyIcon, group:'recursos'},
@@ -1473,7 +1473,7 @@ export default function App() {
         )}
         {view === 'dashboard' && <Dashboard setView={setView} month={month} setMonth={setMonth} />}
         {view === 'calendar' && <CalendarView month={month} setMonth={setMonth} />}
-        {view === 'schedule' && <ScheduleView month={month} setMonth={setMonth} />}
+        {view === 'centro' && <CentroMandoView month={month} setMonth={setMonth} />}
         {view === 'strategy' && <StrategyView />}
         {view === 'tasks' && <TasksView setView={setView} setMonth={setMonth} />}
         {view === 'plan' && <PlanView setView={setView} setMonth={setMonth} />}
@@ -8916,6 +8916,589 @@ function StrategyView() {
     </div>
   );
 }
+// ═══════════════════════════════════════════════════════════════════
+// CENTRO DE MANDO — hub principal: hoy · contenido · acciones · lanzamientos · estrategia
+// ═══════════════════════════════════════════════════════════════════
+
+const ACCIONES_FIJAS = [
+  {
+    id:'acc-inro', pri:'alta', emoji:'⭐',
+    label:'Configurar Inrō "comenta EBOOK" → link al DM',
+    sub:'inro.social · prueba gratuita · 45 minutos · multiplica conversiones x3-5'
+  },
+  {
+    id:'acc-ebook-page', pri:'alta', emoji:'⭐',
+    label:'Revisar página de venta del ebook',
+    sub:'28 personas hicieron clic, 0 compraron. Checkpoints: precio justificado, bullets concretos, testimonio, CTA claro'
+  },
+  {
+    id:'acc-testimonio', pri:'alta', emoji:'⭐',
+    label:'Pedir testimonio por DM a compradores del ebook',
+    sub:'Mensaje corto y directo. Una frase honesta cambia todo en mayo'
+  },
+  {
+    id:'acc-cta-checklist', pri:'media', emoji:'→',
+    label:'Añadir CTA al ebook en última página del checklist',
+    sub:'Canva · 15 minutos · punto de entrada al embudo'
+  },
+  {
+    id:'acc-emails', pri:'media', emoji:'→',
+    label:'Escribir y enviar secuencia 3 emails a lista',
+    sub:'Email 1: ejercicio gratis / Email 2: 6 capítulos / Email 3: subida precio · practicar la voz'
+  },
+  {
+    id:'acc-linkedin-titular', pri:'media', emoji:'→',
+    label:'Actualizar titular LinkedIn con fórmula correcta',
+    sub:'Qué haces + para quién · sin "buscando oportunidades"'
+  },
+  {
+    id:'acc-bio', pri:'baja', emoji:'·',
+    label:'Cambiar link de bio: checklist primero, ebook segundo',
+    sub:'Linktree · checklist capta emails · ebook convierte · orden importa'
+  },
+];
+
+const BF_TASKS = [
+  {id:'bf1', cat:'definición', label:'Decidir descuentos por producto: ebook / asesoría / acompañamiento', due:'27 oct'},
+  {id:'bf2', cat:'definición', label:'Calcular fecha inicio y fin de la oferta (ej. 24-30 nov)', due:'30 oct'},
+  {id:'bf3', cat:'contenido',  label:'Diseñar banner Black Friday + variantes para feed y stories', due:'3 nov'},
+  {id:'bf4', cat:'contenido',  label:'Preparar copy newsletter con código descuento', due:'10 nov'},
+  {id:'bf5', cat:'contenido',  label:'Grabar reel teaser "la oferta del año"', due:'14 nov'},
+  {id:'bf6', cat:'contenido',  label:'Diseñar carrusel con todos los productos y precios rebajados', due:'19 nov'},
+  {id:'bf7', cat:'contenido',  label:'Escribir copies IG + LinkedIn para los 7 días de oferta', due:'21 nov'},
+  {id:'bf8', cat:'contenido',  label:'Teaser stories última hora antes del anuncio', due:'23 nov'},
+  {id:'bf9', cat:'infra',      label:'Configurar códigos descuento en pasarela de pago', due:'6 nov'},
+  {id:'bf10', cat:'infra',     label:'Programar emails: inicio oferta, mid-week, últimas horas', due:'17 nov'},
+  {id:'bf11', cat:'launch',    label:'♡ LANZAR BF: publicar carrusel + newsletter + stories todo el día', due:'24 nov'},
+];
+
+function CentroMandoView({month, setMonth}) {
+  const [state, update] = useAppState();
+  const C = getTheme();
+  const now = new Date();
+  const [tab, setTab] = useState('hoy');
+
+  // ── helpers ─────────────────────────────────────────────────────
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const mesesShort = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const diasShort = ['dom','lun','mar','mié','jue','vie','sáb'];
+
+  const daysUntil = (ds) => {
+    const [d, m] = ds.split(' ');
+    const ms = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+    return Math.ceil((new Date(2026, ms[m], +d) - now) / 86400000);
+  };
+
+  const SectionLabel = ({children}) => (
+    <div style={{fontSize:10, color:C.inkSoft, textTransform:'uppercase', letterSpacing:2, fontWeight:600, marginBottom:10, marginTop:20, paddingBottom:6, borderBottom:`1px solid ${C.borderSoft}`}}>{children}</div>
+  );
+
+  const pfLabel = (pf) => ({instagram:'IG', linkedin:'LI', substack:'SS', tiktok:'TT'})[pf] || pf.slice(0,2).toUpperCase();
+  const pfColor = (pf) => ({instagram:C.igDark, linkedin:C.liDark, substack:C.ssDark, tiktok:C.ttDark})[pf] || C.inkSoft;
+  const pfBg   = (pf) => ({instagram:C.igBg,   linkedin:C.liBg,   substack:C.ssBg,   tiktok:C.ttBg})[pf]   || C.bgSoft;
+
+  // ── KANBAN DATA (shared state with platform views) ───────────────
+  const COLS = [
+    { key:'pending',   label:'Pendiente',    emoji:'○',  color:'#C4A882' },
+    { key:'creating',  label:'Creando',       emoji:'✏️', color:'#C4956A' },
+    { key:'scheduled', label:'Programado',    emoji:'📅', color:'#7BA2C2' },
+    { key:'manual',    label:'Publicar yo',   emoji:'🔔', color:'#9B6FA8' },
+    { key:'published', label:'Publicado',     emoji:'✅', color:'#6BAE82' },
+  ];
+
+  const deleted = new Set(state.deletedPosts||[]);
+  const tiktokReels = D.posts.ig.filter(p=>/eel/i.test(p.t||'')).map(p=>({...normalizePost(p), pf:'tiktok'}));
+  const allPosts = [
+    ...D.posts.ig.map(p=>({...normalizePost(p), pf:'instagram'})),
+    ...D.posts.li.map(p=>({...normalizePost(p), pf:'linkedin'})),
+    ...D.posts.ss.map(p=>({...normalizePost(p), pf:'substack'})),
+    ...tiktokReels,
+    ...(state.customPosts?.ig||[]).map(p=>({...normalizePost(p), pf:'instagram'})),
+    ...(state.customPosts?.li||[]).map(p=>({...normalizePost(p), pf:'linkedin'})),
+    ...(state.customPosts?.ss||[]).map(p=>({...normalizePost(p), pf:'substack'})),
+  ].filter(p=>!deleted.has(p.i) && !deleted.has(`${p.pf}:${p.i}`));
+
+  const getStatus = (p) => effectiveStatus(p, p.pf, state, now);
+  const setStatus = (p, st) => update(s=>{ const k=`${p.pf}:${p.i}`; if(!s.posts[k]) s.posts[k]={}; s.posts[k].status=st; });
+
+  // ── LAUNCH CHECKLISTS ───────────────────────────────────────────
+  const LAUNCHES = [
+    {
+      id:'asesoria', name:'Lanzamiento Asesoría 1:1', price:'90€',
+      date:'2026-07-06', tasks: ASESORIA_TASKS,
+    },
+    {
+      id:'acompanamiento', name:'Lanzamiento Acompañamiento', price:'625€',
+      date:'2026-10-20', tasks: ACOMP_TASKS,
+    },
+    {
+      id:'blackfriday', name:'Black Friday ofertas', price:'varios',
+      date:'2026-11-24', tasks: BF_TASKS,
+    },
+  ];
+
+  const getLaunchDone = (launchId, tasks) =>
+    tasks.filter(t => state.launches?.[launchId]?.[t.id]).length;
+
+  const toggleLaunchTask = (launchId, taskId) => update(s=>{
+    if(!s.launches) s.launches={};
+    if(!s.launches[launchId]) s.launches[launchId]={};
+    s.launches[launchId][taskId] = !s.launches[launchId][taskId];
+  });
+
+  const toggleAccion = (id) => update(s=>{
+    if(!s.acciones) s.acciones={};
+    s.acciones[id] = !s.acciones[id];
+  });
+
+  // ── TODAY DATA ──────────────────────────────────────────────────
+  const todayPosts = allPosts.filter(p=>p.d===todayStr).sort((a,b)=>(a.tm||'').localeCompare(b.tm||''));
+  const weekPosts = allPosts.filter(p=>{
+    if(!p.d) return false;
+    const d = new Date(p.d+'T12:00:00');
+    const diff = Math.ceil((d-now)/86400000);
+    return diff >= 0 && diff <= 7;
+  }).sort((a,b)=>a.d.localeCompare(b.d)||(a.tm||'').localeCompare(b.tm||''));
+
+  // ── STRATEGY DATA (from existing StrategyView) ──────────────────
+  const [stratTab, setStratTab] = useState('mayo');
+
+  const strategyMonths = [
+    { id:'mayo',   emoji:'🌱', label:'Mayo',   phase:'construir audiencia con intención + primeras ventas ebook' },
+    { id:'junio',  emoji:'🌿', label:'Junio',  phase:'consolidar confianza + preparar asesorías en silencio' },
+    { id:'julio',  emoji:'☀️', label:'Julio',  phase:'decisión informada: lanzar o mover a septiembre' },
+  ];
+
+  const [filterPf, setFilterPf] = useState('all');
+
+  // ── RENDER TABS ─────────────────────────────────────────────────
+  const TABS = [
+    {id:'hoy',        emoji:'⚡', label:'Hoy'},
+    {id:'contenido',  emoji:'📋', label:'Contenido'},
+    {id:'acciones',   emoji:'✅', label:'Acciones'},
+    {id:'lanzamientos',emoji:'🚀', label:'Lanzamientos'},
+    {id:'estrategia', emoji:'🎯', label:'Estrategia'},
+  ];
+
+  return (
+    <div style={{padding:'20px 20px 40px', maxWidth:860, margin:'0 auto'}}>
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:10, color:C.inkSoft, textTransform:'uppercase', letterSpacing:2, fontWeight:600, marginBottom:6}}>principal</div>
+        <H size="xl" style={{fontStyle:'italic'}}>centro de mando ✦</H>
+        <div style={{fontSize:12, color:C.inkSoft, marginTop:4}}>contenido · acciones · lanzamientos</div>
+      </div>
+
+      {/* Tab bar */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:4, marginBottom:24, background:C.bgSoft, borderRadius:12, padding:4}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            padding:'9px 4px', border:'none', borderRadius:8, cursor:'pointer',
+            fontFamily:'inherit', fontSize:11, fontWeight:500,
+            background: tab===t.id ? C.card : 'transparent',
+            color: tab===t.id ? C.ink : C.inkSoft,
+            boxShadow: tab===t.id ? `0 1px 3px ${C.border}` : 'none',
+            transition:'all .15s'
+          }}><span style={{display:'block', fontSize:15, marginBottom:2}}>{t.emoji}</span>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ─── HOY ─────────────────────────────────────────────────── */}
+      {tab==='hoy' && (
+        <div>
+          <div style={{background:C.card, borderRadius:12, padding:'14px 16px', border:`1px solid ${C.borderSoft}`, marginBottom:4}}>
+            <div style={{fontFamily:"'Fraunces', serif", fontSize:16, fontStyle:'italic', color:C.ink, marginBottom:2}}>
+              {diasShort[now.getDay()]}, {now.getDate()} {mesesShort[now.getMonth()]}
+            </div>
+            <div style={{fontSize:12, color:C.inkSoft}}>
+              {todayPosts.length > 0 ? `${todayPosts.length} publicación${todayPosts.length>1?'es':''} hoy` : 'sin publicaciones hoy'}
+            </div>
+          </div>
+
+          {todayPosts.length > 0 && <>
+            <SectionLabel>contenido de hoy</SectionLabel>
+            {todayPosts.map(p=>{
+              const st = getStatus(p);
+              const stLabels = {pending:'Pendiente', creating:'Creando', scheduled:'Programado', manual:'Publicar yo', published:'Publicado'};
+              const stColors = {pending:C.inkSoft, creating:C.creating, scheduled:'#7BA2C2', manual:'#9B6FA8', published:C.published};
+              return (
+                <div key={`${p.pf}:${p.i}`} style={{
+                  background:C.card, borderRadius:10, padding:'12px 14px', marginBottom:6,
+                  border:`1px solid ${C.borderSoft}`, borderLeft:`3px solid ${pfColor(p.pf)}`,
+                  display:'flex', alignItems:'center', gap:12
+                }}>
+                  <span style={{fontSize:10, fontWeight:700, color:pfColor(p.pf), background:pfBg(p.pf), padding:'2px 7px', borderRadius:4, flexShrink:0}}>{pfLabel(p.pf)}</span>
+                  {p.tm && <span style={{fontSize:11, color:C.inkSoft, flexShrink:0}}>{p.tm}</span>}
+                  {p.t && <span style={{fontSize:10, color:C.inkSoft, flexShrink:0}}>{p.t}</span>}
+                  <span style={{flex:1, fontSize:13, color:C.ink, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{p.ti||p.su||p.ti||'—'}</span>
+                  <select value={st} onChange={e=>setStatus(p,e.target.value)} style={{fontSize:10, padding:'3px 6px', borderRadius:6, border:`1px solid ${C.border}`, background:C.bgSoft, color:stColors[st]||C.inkSoft, fontFamily:'inherit', fontWeight:600, cursor:'pointer', flexShrink:0}}>
+                    {COLS.map(c=><option key={c.key} value={c.key}>{c.emoji} {c.label}</option>)}
+                  </select>
+                </div>
+              );
+            })}
+          </>}
+
+          <SectionLabel>⚡ acciones urgentes</SectionLabel>
+          {ACCIONES_FIJAS.filter(a=>a.pri==='alta').map(a=>{
+            const done = !!(state.acciones?.[a.id]);
+            return (
+              <div key={a.id} onClick={()=>toggleAccion(a.id)} style={{
+                background:C.card, borderRadius:10, padding:'12px 14px', marginBottom:5,
+                border:`1px solid ${C.borderSoft}`, borderLeft:`3px solid ${done?C.published:C.accent}`,
+                display:'flex', gap:10, cursor:'pointer', opacity:done?0.45:1
+              }}>
+                <div style={{width:18, height:18, borderRadius:9, flexShrink:0, marginTop:2, border:`2px solid ${done?C.published:C.accent}`, background:done?C.published:'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'#fff'}}>{done?'✓':''}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13, color:C.ink, fontWeight:500, textDecoration:done?'line-through':'none', marginBottom:2}}>{a.label}</div>
+                  <div style={{fontSize:11, color:C.inkSoft}}>{a.sub}</div>
+                </div>
+              </div>
+            );
+          })}
+
+          {weekPosts.filter(p=>p.d!==todayStr).length > 0 && <>
+            <SectionLabel>esta semana</SectionLabel>
+            {weekPosts.filter(p=>p.d!==todayStr).map(p=>{
+              const st = getStatus(p);
+              const stColors = {pending:C.inkSoft, creating:C.creating, scheduled:'#7BA2C2', manual:'#9B6FA8', published:C.published};
+              const dd = new Date(p.d+'T12:00:00');
+              return (
+                <div key={`${p.pf}:${p.i}`} style={{
+                  background:C.card, borderRadius:10, padding:'10px 14px', marginBottom:5,
+                  border:`1px solid ${C.borderSoft}`, display:'flex', alignItems:'center', gap:10
+                }}>
+                  <span style={{fontSize:10, fontWeight:700, color:pfColor(p.pf), background:pfBg(p.pf), padding:'2px 6px', borderRadius:4, flexShrink:0}}>{pfLabel(p.pf)}</span>
+                  <span style={{fontSize:10, color:C.inkSoft, flexShrink:0}}>{dd.getDate()} {mesesShort[dd.getMonth()]}</span>
+                  {p.tm && <span style={{fontSize:10, color:C.inkSoft, flexShrink:0}}>{p.tm}</span>}
+                  {p.t && <span style={{fontSize:10, color:C.inkSoft, flexShrink:0}}>{p.t}</span>}
+                  <span style={{flex:1, fontSize:12, color:C.ink, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>{p.ti||p.su||'—'}</span>
+                  <select value={st} onChange={e=>setStatus(p,e.target.value)} style={{fontSize:10, padding:'3px 6px', borderRadius:6, border:`1px solid ${C.border}`, background:C.bgSoft, color:stColors[st]||C.inkSoft, fontFamily:'inherit', cursor:'pointer', flexShrink:0}}>
+                    {COLS.map(c=><option key={c.key} value={c.key}>{c.emoji} {c.label}</option>)}
+                  </select>
+                </div>
+              );
+            })}
+          </>}
+        </div>
+      )}
+
+      {/* ─── CONTENIDO ───────────────────────────────────────────── */}
+      {tab==='contenido' && (
+        <div>
+          {/* Filtros */}
+          <div style={{display:'flex', gap:8, marginBottom:16, flexWrap:'wrap', alignItems:'center'}}>
+            <select value={month} onChange={e=>setMonth(e.target.value)} style={{fontSize:12, padding:'6px 10px', borderRadius:8, border:`1px solid ${C.border}`, background:C.card, color:C.ink, fontFamily:'inherit', cursor:'pointer'}}>
+              {['mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'].map(m=><option key={m} value={m}>{m}</option>)}
+            </select>
+            {['all','instagram','linkedin','substack','tiktok'].map(pf=>(
+              <button key={pf} onClick={()=>setFilterPf(pf)} style={{
+                padding:'5px 12px', borderRadius:8, border:'none', cursor:'pointer',
+                fontFamily:'inherit', fontSize:11, fontWeight:500,
+                background: filterPf===pf ? (pf==='all' ? C.ink : pfColor(pf)) : C.bgSoft,
+                color: filterPf===pf ? (pf==='all' ? C.bg : '#fff') : C.inkSoft,
+              }}>{pf==='all'?'Todas':pfLabel(pf)}</button>
+            ))}
+            <span style={{fontSize:11, color:C.inkSoft, marginLeft:'auto'}}>
+              {allPosts.filter(p=>(p.m||p.d?.slice(5,7)).includes?.(month)||p.m===month).length} posts · {month}
+            </span>
+          </div>
+
+          {/* Kanban */}
+          <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, overflowX:'auto'}}>
+            {COLS.map(col=>{
+              const colPosts = allPosts.filter(p=>{
+                if(p.m !== month) return false;
+                if(filterPf !== 'all' && p.pf !== filterPf) return false;
+                return getStatus(p) === col.key;
+              });
+              return (
+                <div key={col.key} style={{minWidth:150}}>
+                  <div style={{fontSize:10, fontWeight:700, color:col.color, textTransform:'uppercase', letterSpacing:1, marginBottom:8, display:'flex', justifyContent:'space-between'}}>
+                    <span>{col.emoji} {col.label}</span>
+                    <span style={{background:col.color+'20', padding:'1px 6px', borderRadius:10}}>{colPosts.length}</span>
+                  </div>
+                  <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                    {colPosts.map(p=>{
+                      const dd = p.ds || (p.d ? p.d.slice(8,10)+' '+mesesShort[+p.d.slice(5,7)-1] : '—');
+                      return (
+                        <div key={`${p.pf}:${p.i}`} style={{background:C.card, borderRadius:8, padding:'8px 10px', border:`1px solid ${C.borderSoft}`, borderLeft:`3px solid ${pfColor(p.pf)}`}}>
+                          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+                            <span style={{fontSize:9, fontWeight:700, color:pfColor(p.pf), background:pfBg(p.pf), padding:'1px 5px', borderRadius:3}}>{pfLabel(p.pf)}</span>
+                            <span style={{fontSize:9, color:C.accent, fontWeight:600}}>{dd}</span>
+                          </div>
+                          {p.t && <div style={{fontSize:9, color:C.inkSoft, marginBottom:3}}>{p.t}</div>}
+                          <div style={{fontSize:11, color:C.ink, lineHeight:1.3, marginBottom:6}}>{(p.ti||p.su||'—').slice(0,50)}</div>
+                          <div style={{display:'flex', gap:3, justifyContent:'flex-end'}}>
+                            {COLS.indexOf(col)>0 && <button onClick={()=>setStatus(p, COLS[COLS.indexOf(col)-1].key)} style={{padding:'2px 6px', border:`1px solid ${C.border}`, borderRadius:5, background:'transparent', color:C.inkSoft, fontSize:10, cursor:'pointer'}}>←</button>}
+                            {COLS.indexOf(col)<COLS.length-1 && <button onClick={()=>setStatus(p, COLS[COLS.indexOf(col)+1].key)} style={{padding:'2px 7px', border:'none', borderRadius:5, background:COLS[COLS.indexOf(col)+1].color, color:'#fff', fontSize:10, cursor:'pointer', fontWeight:500}}>→</button>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─── ACCIONES ────────────────────────────────────────────── */}
+      {tab==='acciones' && (
+        <div>
+          <div style={{background:C.card, borderRadius:12, padding:'12px 16px', border:`1px solid ${C.borderSoft}`, marginBottom:4, fontSize:12, color:C.inkSoft, lineHeight:1.6}}>
+            Acciones estratégicas de negocio ordenadas por prioridad. Marca las que completes — se guardan automáticamente.
+          </div>
+          {['alta','media','baja'].map(pri=>{
+            const items = ACCIONES_FIJAS.filter(a=>a.pri===pri);
+            const labels = {alta:'PRIORIDAD ALTA', media:'PRIORIDAD MEDIA', baja:'PRIORIDAD BAJA'};
+            const colors = {alta:C.accent, media:'#C4956A', baja:C.inkSoft};
+            return (
+              <div key={pri}>
+                <SectionLabel><span style={{color:colors[pri]}}>→</span> {labels[pri]}</SectionLabel>
+                {items.map(a=>{
+                  const done = !!(state.acciones?.[a.id]);
+                  return (
+                    <div key={a.id} onClick={()=>toggleAccion(a.id)} style={{
+                      background:C.card, borderRadius:10, padding:'12px 14px', marginBottom:5,
+                      border:`1px solid ${C.borderSoft}`,
+                      display:'flex', gap:10, cursor:'pointer', opacity:done?0.45:1
+                    }}>
+                      <div style={{width:18, height:18, borderRadius:3, flexShrink:0, marginTop:2, border:`1.5px solid ${done?C.published:C.border}`, background:done?C.published:'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'#fff'}}>{done?'✓':''}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13, color:C.ink, fontWeight:500, textDecoration:done?'line-through':'none', marginBottom:2}}>{a.label}</div>
+                        <div style={{fontSize:11, color:C.inkSoft, lineHeight:1.5}}>{a.sub}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ─── LANZAMIENTOS ────────────────────────────────────────── */}
+      {tab==='lanzamientos' && (
+        <div>
+          {LAUNCHES.map(launch=>{
+            const done = getLaunchDone(launch.id, launch.tasks);
+            const total = launch.tasks.length;
+            const pct = Math.round((done/total)*100);
+            const launchDate = new Date(launch.date+'T12:00:00');
+            const daysLeft = Math.ceil((launchDate-now)/86400000);
+            const cats = [...new Set(launch.tasks.map(t=>t.cat))];
+            return (
+              <div key={launch.id} style={{background:C.card, borderRadius:12, border:`1px solid ${C.borderSoft}`, marginBottom:16, overflow:'hidden'}}>
+                <div style={{padding:'14px 16px', borderBottom:`1px solid ${C.borderSoft}`}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                    <div>
+                      <div style={{fontSize:14, fontWeight:600, color:C.ink, marginBottom:3}}>{launch.name}</div>
+                      <div style={{fontSize:11, color:C.inkSoft}}>{launch.price} · {launch.date} · en {daysLeft} días</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div style={{fontFamily:"'Fraunces', serif", fontSize:22, fontWeight:500, color: pct===100 ? C.published : daysLeft<21 ? C.accent : C.ink}}>{pct}%</div>
+                      <div style={{fontSize:10, color:C.inkSoft}}>{done}/{total}</div>
+                    </div>
+                  </div>
+                  <div style={{background:C.bgSoft, borderRadius:100, height:4, marginTop:10}}>
+                    <div style={{width:`${pct}%`, background:pct===100?C.published:C.accent, height:'100%', borderRadius:100, transition:'width .3s'}}/>
+                  </div>
+                </div>
+                <div style={{padding:'14px 16px'}}>
+                  {cats.map(cat=>(
+                    <div key={cat} style={{marginBottom:12}}>
+                      <div style={{fontSize:9, color:C.inkSoft, textTransform:'uppercase', letterSpacing:2, fontWeight:600, marginBottom:6}}>
+                        {cat} · {launch.tasks.filter(t=>t.cat===cat&&state.launches?.[launch.id]?.[t.id]).length}/{launch.tasks.filter(t=>t.cat===cat).length}
+                      </div>
+                      {launch.tasks.filter(t=>t.cat===cat).map(t=>{
+                        const checked = !!(state.launches?.[launch.id]?.[t.id]);
+                        const days = daysUntil(t.due);
+                        const hot = !checked && days<=5;
+                        return (
+                          <div key={t.id} onClick={()=>toggleLaunchTask(launch.id,t.id)} style={{
+                            display:'flex', alignItems:'center', gap:10, padding:'8px 0',
+                            borderBottom:`1px solid ${C.borderSoft}`, cursor:'pointer', opacity:checked?0.45:1
+                          }}>
+                            <div style={{width:15, height:15, borderRadius:3, flexShrink:0, border:`1.5px solid ${checked?C.published:hot?C.accent:C.border}`, background:checked?C.published:'transparent', display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, color:'#fff'}}>{checked?'✓':''}</div>
+                            <span style={{flex:1, fontSize:12, color:C.ink, textDecoration:checked?'line-through':'none', lineHeight:1.4}}>{t.label}</span>
+                            <span style={{fontSize:10, color:hot?C.accent:C.inkSoft, fontWeight:hot?600:400, flexShrink:0}}>{t.due}{hot?' ←':''}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ─── ESTRATEGIA ──────────────────────────────────────────── */}
+      {tab==='estrategia' && (
+        <div>
+          {/* Sub-tabs */}
+          <div style={{display:'flex', gap:6, marginBottom:20, flexWrap:'wrap'}}>
+            {[
+              {id:'mayo', label:'🌱 Mayo'},
+              {id:'junio', label:'🌿 Junio'},
+              {id:'julio', label:'☀️ Julio'},
+              {id:'resumen', label:'📋 Resumen'},
+            ].map(t=>(
+              <button key={t.id} onClick={()=>setStratTab(t.id)} style={{
+                padding:'7px 14px', border:`1px solid ${stratTab===t.id?C.accent:C.border}`, borderRadius:8, cursor:'pointer',
+                fontFamily:'inherit', fontSize:12, fontWeight:500,
+                background: stratTab===t.id ? C.accent+'15' : C.card,
+                color: stratTab===t.id ? C.accent : C.inkSoft,
+              }}>{t.label}</button>
+            ))}
+          </div>
+
+          {/* Punto de partida */}
+          <div style={{background:C.card, borderRadius:12, padding:'14px 16px', border:`1px solid ${C.borderSoft}`, marginBottom:4}}>
+            <div style={{fontSize:11, fontWeight:600, color:C.ink, marginBottom:6}}>Punto de partida</div>
+            <div style={{fontSize:12, color:C.inkSoft, lineHeight:1.6}}>597 seguidoras (mayoría follow-back) · engagement real 3-5 personas · 0 ventas · asesorías sin preparar. <strong style={{color:C.ink}}>Un solo objetivo por mes.</strong></div>
+          </div>
+
+          {/* Roadmap 3 meses */}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, marginBottom:4}}>
+            {strategyMonths.map(m=>(
+              <div key={m.id} style={{background:C.bgSoft, borderRadius:10, padding:12, border:`1px solid ${stratTab===m.id?C.accent:C.borderSoft}`}}>
+                <div style={{fontSize:12, fontWeight:700, color:C.accent, marginBottom:4}}>{m.emoji} {m.label.toUpperCase()}</div>
+                <div style={{fontSize:11, color:C.inkSoft, lineHeight:1.5}}>{m.phase}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mayo */}
+          {stratTab==='mayo' && (
+            <div>
+              <SectionLabel>🔍 el diagnóstico real</SectionLabel>
+              <div style={{background:C.card, borderRadius:12, padding:'14px 16px', border:`1px solid ${C.borderSoft}`, marginBottom:4}}>
+                <div style={{fontSize:12, color:C.inkSoft, lineHeight:1.7, marginBottom:10}}>El problema no es el ebook ni las asesorías. Es que <strong style={{color:C.ink}}>la audiencia actual no llegó buscando lo que ofreces</strong> — llegó porque la seguiste primero. Eso hace que el engagement sea bajo y las conversiones casi imposibles.</div>
+                <div style={{background:C.bgSoft, borderRadius:8, padding:12, fontSize:12, color:C.inkSoft, fontStyle:'italic', lineHeight:1.6}}>"La estrategia original está bien diseñada para una audiencia que ya confía en ti. Aún no tienes esa audiencia. Hay que construirla primero."</div>
+              </div>
+
+              <SectionLabel>🎯 objetivo realista de mayo</SectionLabel>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:4}}>
+                <div style={{background:C.bgSoft, borderRadius:10, padding:'14px 16px', textAlign:'center'}}>
+                  <div style={{fontFamily:"'Fraunces', serif", fontSize:28, fontWeight:500, color:C.published}}>2–3</div>
+                  <div style={{fontSize:11, color:C.inkSoft}}>ventas ebook</div>
+                </div>
+                <div style={{background:C.bgSoft, borderRadius:10, padding:'14px 16px', textAlign:'center'}}>
+                  <div style={{fontFamily:"'Fraunces', serif", fontSize:18, fontWeight:500, color:C.ink, lineHeight:1.3}}>+ aprender</div>
+                  <div style={{fontSize:11, color:C.inkSoft}}>qué contenido atrae gente nueva</div>
+                </div>
+              </div>
+              <div style={{background:C.card, borderRadius:10, padding:'12px 14px', border:`1px solid ${C.borderSoft}`, marginBottom:4, fontSize:12, color:C.inkSoft}}>
+                <strong style={{color:'#D85A6F'}}>NO:</strong> 5-10 ventas · <strong style={{color:C.published}}>SÍ:</strong> 2 piezas de descubrimiento por semana. Mejor dos buenas que cinco mediocres.
+                <div style={{marginTop:8, fontWeight:600, color:C.ink, marginBottom:4}}>Topics de descubrimiento:</div>
+                {['"Qué poner en tu LinkedIn si no tienes experiencia"','"Por qué no te llaman a entrevistas (y cómo cambiarlo)"','"Cómo explicar en una entrevista que acabas de terminar la carrera"','"El error que cometen el 90% de las recién graduadas en su CV"'].map((t,i)=>(
+                  <div key={i} style={{fontSize:12, color:C.inkSoft, padding:'3px 0'}}>→ {t}</div>
+                ))}
+              </div>
+
+              <SectionLabel>✅ se mantiene · ✗ se quita</SectionLabel>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:4}}>
+                <div style={{background:C.card, borderRadius:10, padding:'12px 14px', border:`1px solid ${C.borderSoft}`}}>
+                  {['Inrō → hazlo (45 min)','Testimonio por DM → esta semana','CTA al ebook en checklist (15 min)','Secuencia 3 emails → práctica de voz'].map((t,i)=>(
+                    <div key={i} style={{fontSize:12, color:C.ink, padding:'4px 0', borderBottom:`1px solid ${C.borderSoft}`, display:'flex', gap:6}}><span style={{color:C.published}}>✅</span>{t}</div>
+                  ))}
+                </div>
+                <div style={{background:C.card, borderRadius:10, padding:'12px 14px', border:`1px solid ${C.borderSoft}`}}>
+                  {['Urgencia precio 26 mayo (teatro con 8 personas)','Objetivo 5-10 ventas (genera ansiedad)'].map((t,i)=>(
+                    <div key={i} style={{fontSize:12, color:C.ink, padding:'4px 0', borderBottom:`1px solid ${C.borderSoft}`, display:'flex', gap:6}}><span style={{color:'#D85A6F'}}>✗</span>{t}</div>
+                  ))}
+                </div>
+              </div>
+
+              <SectionLabel>📊 las métricas que importan en mayo</SectionLabel>
+              <div style={{background:C.card, borderRadius:10, padding:'12px 14px', border:`1px solid ${C.borderSoft}`}}>
+                <div style={{fontSize:11, color:C.inkSoft, marginBottom:10}}>Señales que te dicen si vas bien · NO el número de ventas:</div>
+                {[
+                  {label:'Guardados en reels/carruseles', sub:'→ Gente nueva encontrando tu contenido'},
+                  {label:'Nuevas suscriptoras al checklist', sub:'→ El lead magnet está funcionando'},
+                  {label:'DMs de personas que no te conocían', sub:'→ Audiencia con intención llegando'},
+                  {label:'Comentarios que describen su situación', sub:'→ Conexión real con el problema'},
+                ].map((m,i)=>(
+                  <div key={i} style={{padding:'8px 10px', background:C.bgSoft, borderRadius:8, marginBottom:6}}>
+                    <div style={{fontSize:12, fontWeight:500, color:C.accent}}>📊 {m.label}</div>
+                    <div style={{fontSize:11, color:C.inkSoft}}>{m.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Junio */}
+          {stratTab==='junio' && (
+            <div>
+              <SectionLabel>🌿 junio · consolidar confianza</SectionLabel>
+              <div style={{background:C.card, borderRadius:12, padding:'14px 16px', border:`1px solid ${C.borderSoft}`, marginBottom:4}}>
+                <div style={{fontSize:12, color:C.inkSoft, lineHeight:1.7}}>Junio es el mes de preparación silenciosa. El contenido de junio siembra la asesoría de julio. Cada semana conecta con un dolor específico de las clientas ideales. La confianza se construye post a post.</div>
+              </div>
+              {[
+                {semana:'Semana 1', label:'sembrar asesoría', desc:'Posts que muestran que a veces el ebook no es suficiente. Casos donde hace falta guía personalizada.'},
+                {semana:'Semana 2', label:'educar sobre guía personal', desc:'Qué es una sesión de orientación. Qué pasa durante. Qué cambia después.'},
+                {semana:'Semana 3', label:'testimonios + yoga day', desc:'Prueba social del ebook + conexión con bienestar laboral.'},
+                {semana:'Semana 4', label:'pre-lanzamiento asesoría', desc:'Lista de espera abierta. Stories de urgencia suave. El feed ya siembrado.'},
+              ].map((s,i)=>(
+                <div key={i} style={{background:C.card, borderRadius:10, padding:'12px 14px', border:`1px solid ${C.borderSoft}`, marginBottom:6, display:'flex', gap:12}}>
+                  <div style={{fontSize:10, fontWeight:700, color:C.accent, flexShrink:0, marginTop:2}}>{s.semana}</div>
+                  <div>
+                    <div style={{fontSize:12, fontWeight:600, color:C.ink, marginBottom:3}}>{s.label}</div>
+                    <div style={{fontSize:11, color:C.inkSoft, lineHeight:1.5}}>{s.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Julio */}
+          {stratTab==='julio' && (
+            <div>
+              <SectionLabel>☀️ julio · decisión de lanzamiento</SectionLabel>
+              <div style={{background:C.card, borderRadius:12, padding:'14px 16px', border:`1px solid ${C.borderSoft}`, marginBottom:4}}>
+                <div style={{fontSize:12, color:C.inkSoft, lineHeight:1.7, marginBottom:10}}>El 6 de julio es el lanzamiento de la asesoría. Pero la decisión real se toma con los datos de mayo y junio. Si las métricas de descubrimiento fueron bien → lanzas en julio. Si no → mueves a septiembre sin drama.</div>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+                  <div style={{background:C.bgSoft, borderRadius:8, padding:12}}>
+                    <div style={{fontSize:11, fontWeight:700, color:C.published, marginBottom:6}}>Escenario A · lanzas julio</div>
+                    <div style={{fontSize:11, color:C.inkSoft, lineHeight:1.6}}>Tienes 100+ emails en lista · engagement real subiendo · 3+ testimonios del ebook · Inrō funcionando</div>
+                  </div>
+                  <div style={{background:C.bgSoft, borderRadius:8, padding:12}}>
+                    <div style={{fontSize:11, fontWeight:700, color:'#C4956A', marginBottom:6}}>Escenario B · mueves a septiembre</div>
+                    <div style={{fontSize:11, color:C.inkSoft, lineHeight:1.6}}>Lista pequeña · poca prueba social · mejor usar agosto para construir y septiembre para lanzar con más base</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Resumen */}
+          {stratTab==='resumen' && (
+            <div>
+              <SectionLabel>📋 marcas de referencia</SectionLabel>
+              {[
+                { handle:'@theglwguide',           lesson:'guía visual + digital products · estética limpia · comunidad muy fiel antes de vender nada' },
+                { handle:'@theproductivitymethod', lesson:'educa sobre productividad todos los días · el producto es consecuencia natural del contenido' },
+                { handle:'@the.habittracker',      lesson:'contenido de valor repetible · misma audiencia · mismo problema · distintos ángulos cada semana' },
+                { handle:'@hausofplanner',         lesson:'digital products + comunidad · venden con naturalidad porque llevan meses dando primero' },
+                { handle:'@creatorcollege_',       lesson:'educa sobre crear contenido · su producto es la formación · la confianza se construye post a post' },
+              ].map((b,i)=>(
+                <div key={i} style={{background:C.card, borderRadius:10, padding:'10px 14px', marginBottom:5, border:`1px solid ${C.borderSoft}`, display:'flex', gap:12}}>
+                  <span style={{fontSize:12, fontWeight:600, color:C.accent, flexShrink:0}}>{b.handle}</span>
+                  <span style={{fontSize:12, color:C.inkSoft, lineHeight:1.5}}>{b.lesson}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 
 
