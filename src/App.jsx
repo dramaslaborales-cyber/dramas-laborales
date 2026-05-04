@@ -1312,8 +1312,8 @@ export default function App() {
   const NAV = [
     {id:'dashboard', label:'Dashboard', icon:Home, group:'principal'},
     {id:'calendar', label:'Calendario', icon:CalIcon, group:'principal'},
-    {id:'schedule', label:'Programación', icon:Bell, group:'principal'},
-    {id:'tasks', label:'to do', icon:Check, group:'principal'},
+    {id:'centro', label:'Centro de mando', icon:Target, group:'principal'},
+    {id:'tasks', label:'To Do', icon:Check, group:'principal'},
     {id:'instagram', label:'Instagram', icon:IgIcon, group:'redes', color:C.igDark},
     {id:'linkedin', label:'LinkedIn', icon:LiIcon, group:'redes', color:C.liDark},
     {id:'substack', label:'Substack', icon:FileText, group:'redes', color:C.ssDark},
@@ -1473,7 +1473,7 @@ export default function App() {
         )}
         {view === 'dashboard' && <Dashboard setView={setView} month={month} setMonth={setMonth} />}
         {view === 'calendar' && <CalendarView month={month} setMonth={setMonth} />}
-        {view === 'schedule' && <ScheduleView month={month} setMonth={setMonth} />}
+        {view === 'centro' && <div style={{padding:40}}><h2>Centro de mando</h2></div>}
         {view === 'strategy' && <StrategyView />}
         {view === 'tasks' && <TasksView setView={setView} setMonth={setMonth} />}
         {view === 'plan' && <PlanView setView={setView} setMonth={setMonth} />}
