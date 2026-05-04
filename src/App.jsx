@@ -9400,3 +9400,4 @@ function HighlightsView() {
     </div>
   );
 }
+
