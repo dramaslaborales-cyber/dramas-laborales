@@ -203,20 +203,24 @@ const MONTHS_ES = [
   {id:'diciembre',n:'Diciembre',num:12,phase:'cierre'}
 ];
 
-const PLATFORMS = {
-  instagram: {name:'Instagram', short:'IG', color:C.ig, dark:C.igDark, bg:C.igBg, icon:IgIcon},
-  linkedin: {name:'LinkedIn', short:'LI', color:C.li, dark:C.liDark, bg:C.liBg, icon:LiIcon},
-  substack: {name:'Substack', short:'SS', color:C.ss, dark:C.ssDark, bg:C.ssBg, icon:FileText},
-  tiktok: {name:'TikTok', short:'TT', color:C.tt, dark:C.ttDark, bg:C.ttBg, icon:Video}
-};
+function getPlatforms() {
+  return {
+    instagram: {name:'Instagram', short:'IG', color:C.ig, dark:C.igDark, bg:C.igBg, icon:IgIcon},
+    linkedin: {name:'LinkedIn', short:'LI', color:C.li, dark:C.liDark, bg:C.liBg, icon:LiIcon},
+    substack: {name:'Substack', short:'SS', color:C.ss, dark:C.ssDark, bg:C.ssBg, icon:FileText},
+    tiktok: {name:'TikTok', short:'TT', color:C.tt, dark:C.ttDark, bg:C.ttBg, icon:Video}
+  };
+}
 
-const STATUS = {
-  pending:   {label:'Pendiente',          color:C.pending,   icon:Circle},
-  creating:  {label:'Creando',            color:C.creating,  icon:PauseCircle},
-  scheduled: {label:'Programado',         color:'#C0D8EB',   icon:CheckCircle2},
-  manual:    {label:'Publicar yo',        color:'#C4A0D8',   icon:Bell},
-  published: {label:'Publicado',          color:C.published, icon:CheckCircle2},
-};
+function getStatus() {
+  return {
+    pending:   {label:'Pendiente',          color:C.pending,   icon:Circle},
+    creating:  {label:'Creando',            color:C.creating,  icon:PauseCircle},
+    scheduled: {label:'Programado',         color:'#C0D8EB',   icon:CheckCircle2},
+    manual:    {label:'Publicar yo',        color:'#C4A0D8',   icon:Bell},
+    published: {label:'Publicado',          color:C.published, icon:CheckCircle2},
+  };
+}
 
 // Devuelve el estado efectivo: si está "scheduled" y ya pasó la fecha/hora, lo considera "published"
 function effectiveStatus(post, platform, state, now) {
@@ -1168,7 +1172,7 @@ const H = ({children, size='lg', style={}}) => {
 
 // Status Badge
 const StatusPill = ({status, onClick}) => {
-  const s = STATUS[status] || STATUS.pending;
+  const s = getStatus()[status] || getStatus().pending;
   const Icon = s.icon;
   return (
     <button onClick={onClick} style={{
@@ -1648,7 +1652,7 @@ function Dashboard({setView, month, setMonth}) {
   const todayUnpublished = todayPosts.filter(p => getPostStatus(p) !== 'published');
   if (todayUnpublished.length > 0) {
     const first = todayUnpublished[0];
-    const pf = PLATFORMS[first._pf];
+    const pf = getPlatforms()[first._pf];
     nextAction = {
       kind: 'publish',
       label: `publicar en ${pf.name}: "${(first.ti || first.su || '').slice(0,40)}"`,
@@ -1678,7 +1682,7 @@ function Dashboard({setView, month, setMonth}) {
         return st !== 'scheduled' && st !== 'published';
       });
     if (soonPost) {
-      const pf = PLATFORMS[soonPost.platform];
+      const pf = getPlatforms()[soonPost.platform];
       const days = Math.ceil((soonPost._dt - now) / (1000*60*60*24));
       nextAction = {
         kind: 'create',
@@ -1818,7 +1822,7 @@ function Dashboard({setView, month, setMonth}) {
                     📸 posts a publicar
                   </div>
                   {todayPosts.map((p, i) => {
-                    const pf = PLATFORMS[p._pf];
+                    const pf = getPlatforms()[p._pf];
                     const status = getPostStatus(p);
                     const isDone = status === 'published';
                     const togglePublish = () => {
@@ -2030,10 +2034,10 @@ function Dashboard({setView, month, setMonth}) {
             <>
               <div style={{
                 display:'inline-block', padding:'3px 8px', fontSize:10,
-                background: PLATFORMS[nextPost.platform].bg, color: PLATFORMS[nextPost.platform].dark,
+                background: getPlatforms()[nextPost.platform].bg, color: getPlatforms()[nextPost.platform].dark,
                 borderRadius:100, marginBottom:10, letterSpacing:0.3, fontWeight:500
               }}>
-                {PLATFORMS[nextPost.platform].name} · {whenLabel(nextPost._dt)}
+                {getPlatforms()[nextPost.platform].name} · {whenLabel(nextPost._dt)}
               </div>
               <div style={{fontSize:14, color:C.ink, lineHeight:1.4, fontWeight:500, marginBottom:6}}>
                 {nextPost.ti}
@@ -2261,7 +2265,7 @@ function PostCard({post, platform, onEdit, onDelete}) {
     } catch {}
   };
 
-  const p = PLATFORMS[platform];
+  const p = getPlatforms()[platform];
   const typeIsReel = /eel/i.test(post.t || '');
   const typeIsCarr = /arrusel/i.test(post.t || '');
 
@@ -2592,7 +2596,7 @@ function WeeklyMini({month}) {
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
         <H size="sm">calendario semanal · todas las redes</H>
         <div style={{display:'flex', gap:10, fontSize:10, color:C.inkSoft}}>
-          {Object.entries(PLATFORMS).map(([k,p]) => (
+          {Object.entries(getPlatforms()).map(([k,p]) => (
             <span key={k} style={{display:'flex', alignItems:'center', gap:4}}>
               <span style={{width:8, height:8, borderRadius:4, background:p.color}}></span>
               {p.short}
@@ -2908,7 +2912,7 @@ function CalendarView({month, setMonth}) {
                 background: filterPf==='all' ? C.ink : C.bgSoft, 
                 color: filterPf==='all' ? C.bg : C.ink, fontSize:11, cursor:'pointer', fontFamily:'inherit', fontWeight:500
               }}>todas</button>
-              {Object.entries(PLATFORMS).map(([k,p]) => (
+              {Object.entries(getPlatforms()).map(([k,p]) => (
                 <button key={k} onClick={() => setFilterPf(k)} style={{
                   padding:'5px 10px', border:'none', borderRadius:100,
                   background: filterPf===k ? p.dark : p.bg, 
@@ -2925,7 +2929,7 @@ function CalendarView({month, setMonth}) {
                 background: filterStatus==='all' ? C.ink : C.bgSoft, 
                 color: filterStatus==='all' ? C.bg : C.ink, fontSize:11, cursor:'pointer', fontFamily:'inherit', fontWeight:500
               }}>todos</button>
-              {Object.entries(STATUS).map(([k,s]) => (
+              {Object.entries(getStatus()).map(([k,s]) => (
                 <button key={k} onClick={() => setFilterStatus(k)} style={{
                   padding:'5px 10px', border:'none', borderRadius:100,
                   background: filterStatus===k ? s.color : s.color+'40', 
@@ -2993,7 +2997,7 @@ function CalendarView({month, setMonth}) {
                 </div>
                 <div style={{display:'flex', flexDirection:'column', gap:3, minWidth:0}}>
                   {posts.slice(0, 4).map((p, j) => {
-                    const pf = PLATFORMS[p.pf];
+                    const pf = getPlatforms()[p.pf];
                     const s = getStatus(p);
                     const isDone = s === 'published';
                     const isCreating = s === 'creating';
@@ -3050,7 +3054,7 @@ function PlatformView({platform, month, setMonth}) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   
-  const pf = PLATFORMS[platform];
+  const pf = getPlatforms()[platform];
   const Icon = pf.icon;
 
   const pfKey = platform === 'instagram' ? 'ig' : platform === 'linkedin' ? 'li' : 'ss';
@@ -3215,10 +3219,10 @@ function PlatformView({platform, month, setMonth}) {
       {/* Status filter */}
       <div style={{display:'flex', gap:8, marginBottom:8, flexWrap:'wrap'}}>
         {['all','pending','creating','scheduled','published'].map(s => {
-          const label = s === 'all' ? 'sin publicar' : STATUS[s].label;
+          const label = s === 'all' ? 'sin publicar' : getStatus()[s].label;
           const count = totalCounts[s];
           const active = filterStatus === s;
-          const color = s === 'all' ? C.ink : STATUS[s].color;
+          const color = s === 'all' ? C.ink : getStatus()[s].color;
           const isPublished = s === 'published';
           return (
             <button key={s} onClick={() => setFilterStatus(s)} style={{
@@ -3366,9 +3370,9 @@ function TikTokView({month, setMonth}) {
       {/* Status filter */}
       <div style={{display:'flex', gap:8, marginBottom:16, flexWrap:'wrap'}}>
         {['all','pending','creating','scheduled','published'].map(s => {
-          const label = s === 'all' ? 'sin publicar' : STATUS[s].label;
+          const label = s === 'all' ? 'sin publicar' : getStatus()[s].label;
           const active = filterStatus === s;
-          const color = s === 'all' ? C.ink : STATUS[s].color;
+          const color = s === 'all' ? C.ink : getStatus()[s].color;
           return (
             <button key={s} onClick={() => setFilterStatus(s)} style={{
               padding:'6px 12px', border:`1px solid ${active ? color : C.border}`, borderRadius:100,
@@ -4862,16 +4866,16 @@ function IncomeView() {
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12, minWidth: 720}}>
           <thead>
             <tr style={{background:C.bgSoft}}>
-              <th style={th}>mes</th>
-              <th style={th}>ebook obj</th>
-              <th style={th}>ebook real</th>
-              <th style={th}>asesoría obj</th>
-              <th style={th}>asesoría real</th>
-              <th style={th}>acomp obj</th>
-              <th style={th}>acomp real</th>
-              <th style={th}>total obj</th>
-              <th style={th}>total real</th>
-              <th style={th}>dif</th>
+              <th style={getTh()}>mes</th>
+              <th style={getTh()}>ebook obj</th>
+              <th style={getTh()}>ebook real</th>
+              <th style={getTh()}>asesoría obj</th>
+              <th style={getTh()}>asesoría real</th>
+              <th style={getTh()}>acomp obj</th>
+              <th style={getTh()}>acomp real</th>
+              <th style={getTh()}>total obj</th>
+              <th style={getTh()}>total real</th>
+              <th style={getTh()}>dif</th>
             </tr>
           </thead>
           <tbody>
@@ -4886,7 +4890,7 @@ function IncomeView() {
               const dif = totalReal - r.total_obj;
               
               const editCell = (key, current) => (
-                <td style={tdEdit} onClick={() => startEdit(key, current || '')}>
+                <td style={getTdEdit()} onClick={() => startEdit(key, current || '')}>
                   {editingCell === key ? (
                     <input 
                       type="number" autoFocus
@@ -4906,18 +4910,18 @@ function IncomeView() {
               
               return (
                 <tr key={r.month} style={{borderTop:`1px solid ${C.borderSoft}`}}>
-                  <td style={{...td, fontWeight:500, textTransform:'capitalize'}}>{r.month}</td>
-                  <td style={td}>{r.ebook_obj > 0 ? r.ebook_obj + '€' : '—'}</td>
+                  <td style={{...getTd(), fontWeight:500, textTransform:'capitalize'}}>{r.month}</td>
+                  <td style={getTd()}>{r.ebook_obj > 0 ? r.ebook_obj + '€' : '—'}</td>
                   {editCell(keyEb, realEb)}
-                  <td style={td}>{r.asesoria_obj > 0 ? r.asesoria_obj + '€' : '—'}</td>
+                  <td style={getTd()}>{r.asesoria_obj > 0 ? r.asesoria_obj + '€' : '—'}</td>
                   {editCell(keyAs, realAs)}
-                  <td style={td}>{r.acomp_obj > 0 ? r.acomp_obj + '€' : '—'}</td>
+                  <td style={getTd()}>{r.acomp_obj > 0 ? r.acomp_obj + '€' : '—'}</td>
                   {editCell(keyAc, realAc)}
-                  <td style={{...td, fontWeight:500}}>{r.total_obj}€</td>
-                  <td style={{...td, fontWeight:500, color: totalReal > 0 ? C.ink : C.inkSoft}}>
+                  <td style={{...getTd(), fontWeight:500}}>{r.total_obj}€</td>
+                  <td style={{...getTd(), fontWeight:500, color: totalReal > 0 ? C.ink : C.inkSoft}}>
                     {totalReal > 0 ? totalReal + '€' : '—'}
                   </td>
-                  <td style={{...td, color: dif >= 0 ? C.igDark : C.ssDark, fontWeight:500}}>
+                  <td style={{...getTd(), color: dif >= 0 ? C.igDark : C.ssDark, fontWeight:500}}>
                     {totalReal > 0 ? (dif >= 0 ? '+' : '') + dif + '€' : '—'}
                   </td>
                 </tr>
@@ -4931,9 +4935,9 @@ function IncomeView() {
   );
 }
 
-const th = {padding:'10px 8px', textAlign:'left', fontSize:10, fontWeight:600, color:C.inkSoft, textTransform:'uppercase', letterSpacing:0.5};
-const td = {padding:'10px 8px', fontSize:12, color:C.ink};
-const tdEdit = {...td, cursor:'pointer', background:C.bgSoft};
+function getTh() { return {padding:'10px 8px', textAlign:'left', fontSize:10, fontWeight:600, color:C.inkSoft, textTransform:'uppercase', letterSpacing:0.5}; }
+function getTd() { return {padding:'10px 8px', fontSize:12, color:C.ink}; }
+function getTdEdit() { return {...getTd(), cursor:'pointer', background:C.bgSoft}; }
 
 // ═══════════════════════════════════════════════════════════════════
 // METRICS VIEW — seguimiento de métricas clave
@@ -5421,13 +5425,13 @@ function MetricsView() {
           <table style={{width:'100%', borderCollapse:'collapse', fontSize:12, minWidth:800}}>
             <thead>
               <tr style={{background:C.bgSoft, borderBottom:`1px solid ${C.border}`}}>
-                <th style={{...th, position:'sticky', left:0, background:C.bgSoft, zIndex:1}}>semana (dom)</th>
+                <th style={{...getTh(), position:'sticky', left:0, background:C.bgSoft, zIndex:1}}>semana (dom)</th>
                 {WEEKLY_METRICS.map(m => (
-                  <th key={m.key} style={{...th, textAlign:'center', background:m.bg+'80', color:m.color, fontSize:10}} title={m.label}>
+                  <th key={m.key} style={{...getTh(), textAlign:'center', background:m.bg+'80', color:m.color, fontSize:10}} title={m.label}>
                     {m.label.replace('Interacciones IG semana','Interacc.').replace('Suscriptores Substack','Subs SS').replace('Seguidores ','Segui.').slice(0,14)}
                   </th>
                 ))}
-                <th style={{...th, textAlign:'center'}}>—</th>
+                <th style={{...getTh(), textAlign:'center'}}>—</th>
               </tr>
             </thead>
             <tbody>
@@ -5447,7 +5451,7 @@ function MetricsView() {
                     opacity: isFuture ? 0.55 : 1
                   }}>
                     <td style={{
-                      ...td, fontWeight: wk.isCurrent ? 600 : 500,
+                      ...getTd(), fontWeight: wk.isCurrent ? 600 : 500,
                       position:'sticky', left:0, 
                       background: isEditing ? '#FCE8EE' : wk.isCurrent ? C.bgSoft : C.card,
                       zIndex:1, minWidth:110
@@ -5460,7 +5464,7 @@ function MetricsView() {
                     {WEEKLY_METRICS.map(m => {
                       const cellVal = isEditing ? (editBuffer[m.key] ?? '') : data[m.key];
                       return (
-                        <td key={m.key} style={{...td, textAlign:'center'}}>
+                        <td key={m.key} style={{...getTd(), textAlign:'center'}}>
                           {isEditing ? (
                             <input
                               type="number"
@@ -5482,7 +5486,7 @@ function MetricsView() {
                         </td>
                       );
                     })}
-                    <td style={{...td, textAlign:'center', minWidth:90}}>
+                    <td style={{...getTd(), textAlign:'center', minWidth:90}}>
                       {isEditing ? (
                         <div style={{display:'flex', gap:4, justifyContent:'center'}}>
                           <button onClick={saveEdit} style={{
@@ -6118,7 +6122,7 @@ function TasksView({setView, setMonth}) {
                   {weekItems.map((item, ii) => {
                     if (item.type === 'post') {
                       const p = item.p;
-                      const pf = PLATFORMS[p.pf];
+                      const pf = getPlatforms()[p.pf];
                       const isCreating = getPostStatus(p) === 'creating';
                       const isScheduled = getPostStatus(p) === 'scheduled';
                       return (
@@ -7795,7 +7799,7 @@ function ThisWeekView({setView, setMonth}) {
               </div>
               <div style={{display:'flex', flexDirection:'column', gap:6}}>
                 {day.posts.map((p, i) => {
-                  const pf = PLATFORMS[p._pf];
+                  const pf = getPlatforms()[p._pf];
                   const status = getStatus(p);
                   const isDone = status === 'published';
                   const isScheduled = status === 'scheduled';
@@ -8187,7 +8191,7 @@ function ScheduleView({month, setMonth}) {
         <div style={{width:1,height:18,background:C.border,flexShrink:0}}/>
         <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
           {[['all','Todas'],['instagram','IG'],['linkedin','LI'],['substack','SS'],['tiktok','TT']].map(([pf,lbl])=>{
-            const pfColor = pf==='all' ? C.ink : PLATFORMS[pf]?.dark||C.ink;
+            const pfColor = pf==='all' ? C.ink : getPlatforms()[pf]?.dark||C.ink;
             return (
               <button key={pf} onClick={()=>setFilterPf(pf)} style={{
                 padding:'5px 10px',border:`1px solid ${filterPf===pf?pfColor:C.border}`,
@@ -8279,7 +8283,7 @@ function ScheduleView({month, setMonth}) {
                 )}
 
                 {colPosts.map((p,i) => {
-                  const pf = PLATFORMS[p.pf] || PLATFORMS.instagram;
+                  const pf = getPlatforms()[p.pf] || getPlatforms().instagram;
                   const d = p.d ? new Date(p.d) : null;
                   const dateStr = d ? `${['do','lu','ma','mi','ju','vi','sá'][d.getDay()]} ${d.getDate()} ${mesesShort[d.getMonth()]}` : '';
                   const prev = colIdx > 0 ? COLS[colIdx-1] : null;
